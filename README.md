@@ -6,6 +6,8 @@
 ![coverage](https://img.shields.io/badge/coverage-94%25-brightgreen)
 ![types](https://img.shields.io/badge/mypy-strict-blue)
 
+**[▶ Live report](https://atishaykashyap.github.io/gitpulse/)**: rebuilt every Monday by GitHub Actions from live GitHub data (this project, Sentinel-DQ, VetLedger, Typer and Flask).
+
 ![Report for fastapi/typer](docs/screenshots/report-light.png)
 
 ## What it answers
