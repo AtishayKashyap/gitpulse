@@ -1,0 +1,7 @@
+# sentinel-dq (github.com/AtishayKashyap/sentinel-dq) validating gitpulse's own warehouse.
+# search_path=mart lets suites name mart tables directly.
+datasources:
+  warehouse:
+    url: ${GITPULSE_DQ_URL:-postgresql+psycopg://postgres:postgres@localhost:5432/gitpulse?options=-csearch_path%3Dmart}
+results_url: ${SENTINEL_RESULTS_URL:-sqlite:///dq-results.db}
+suites_dir: dq/checks
