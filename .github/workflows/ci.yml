@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: gitpulse_test }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U postgres" --health-interval 3s --health-retries 20
+    env:
+      GITPULSE_TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/gitpulse_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -e ".[dev]"
+      - run: ruff check src tests && ruff format --check src tests
+      - run: mypy
+      - name: Tests (real Postgres, real git, mocked GitHub API; coverage gate 80%)
+        run: pytest --cov-report=xml
+      - run: pip install pip-audit && pip-audit --skip-editable
+
+  pipeline:
+    # The real thing: extract live data, build the warehouse, validate it with
+    # sentinel-dq (Project 2), render the report.
+    needs: test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: gitpulse }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U postgres" --health-interval 3s --health-retries 20
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITPULSE_LOG_FORMAT: json
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install . "sentinel-dq @ git+https://github.com/AtishayKashyap/sentinel-dq"
+      - run: gitpulse extract
+      - run: gitpulse transform
+      - name: Data-quality gate (sentinel-dq)
+        run: sentinel run -c dq/sentinel.yml
+      - run: gitpulse report --out site
+      - uses: actions/upload-artifact@v7
+        with: { name: report, path: site }
+
+  docker:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -t gitpulse:ci .
+      - name: Smoke test
+        run: |
+          docker run -d --name api -p 8000:8000 gitpulse:ci
+          for i in $(seq 1 20); do curl -sf localhost:8000/healthz && exit 0; sleep 1; done
+          docker logs api; exit 1
+      - uses: aquasecurity/trivy-action@v0.36.0
+        with: { image-ref: "gitpulse:ci", severity: "CRITICAL,HIGH", ignore-unfixed: true, exit-code: "1" }
