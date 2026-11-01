@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1.7
-FROM python:3.12-slim AS build
+FROM python:3.15-slim AS build
 WORKDIR /src
 COPY pyproject.toml README.md ./
 COPY src ./src
 RUN pip wheel --no-cache-dir --wheel-dir /wheels .
 
-FROM python:3.12-slim
+FROM python:3.15-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 GITPULSE_LOG_FORMAT=json MPLCONFIGDIR=/tmp/mpl
 # git is needed for history extraction; nothing else.
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
