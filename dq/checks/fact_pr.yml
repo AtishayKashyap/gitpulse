@@ -1,0 +1,15 @@
+datasource: warehouse
+table: fact_pr
+checks:
+  - type: unique
+    columns: [repo, number]
+  - type: referential
+    column: repo
+    ref_table: dim_repo
+    ref_column: repo
+  - type: custom_sql
+    name: merged_before_created
+    sql: SELECT count(*) FROM mart.fact_pr WHERE merged_at < created_at
+  - type: range
+    column: cycle_hours
+    min: 0

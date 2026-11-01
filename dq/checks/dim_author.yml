@@ -1,0 +1,8 @@
+datasource: warehouse
+table: dim_author
+checks:
+  - type: unique
+    columns: [author_key]
+  - type: not_null
+    column: display_name
+    severity: warning

@@ -1,0 +1,19 @@
+datasource: warehouse
+table: fact_commit
+checks:
+  - type: unique
+    columns: [repo, sha]
+  - type: not_null
+    column: author_key
+  - type: referential
+    column: author_key
+    ref_table: dim_author
+    ref_column: author_key
+  - type: range
+    column: additions
+    min: 0
+  - type: freshness
+    column: authored_at
+    max_lag_hours: 720
+    severity: warning
+    description: Monitored repos should have commits in the last 30 days
