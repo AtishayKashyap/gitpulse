@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gitpulse report</title>
+<meta name="description" content="Engineering analytics: activity, PR cycle time, review coverage, hotspots and bus factor.">
+<style>
+  :root { --bg:#f8fafc; --surface:#fff; --line:#e5e7eb; --ink:#111827; --muted:#6b7280; --brand:#2563eb; --bad:#dc2626; --ok:#059669; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0b1220; --surface:#111a2b; --line:#1f2a3d; --ink:#e5e7eb; --muted:#94a3b8; --brand:#60a5fa; --bad:#f87171; --ok:#34d399; }
+    img.chart { filter: invert(.92) hue-rotate(180deg); } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.55 Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -.01em; }
+  h2 { font-size: 19px; margin: 0; }
+  .muted { color: var(--muted); }
+  .repo { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; margin-top: 24px; }
+  .head { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:baseline; }
+  .kpis { display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 18px 0; }
+  .kpi { border:1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .kpi b { display:block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .kpi span { font-size: 12px; color: var(--muted); }
+  .bad { color: var(--bad); } .ok { color: var(--ok); }
+  img.chart { width: 100%; height: auto; margin-top: 14px; border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 14px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  a { color: var(--brand); }
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>gitpulse</h1>
+  <div class="muted">Engineering analytics from git history and GitHub · generated {{ generated.strftime("%d %b %Y %H:%M UTC") }} · <a href="https://github.com/AtishayKashyap/gitpulse">source</a></div>
+  {% for r in repos %}
+  <section class="repo" id="{{ r.slug }}">
+    <div class="head">
+      <h2><a href="https://github.com/{{ r.repo }}">{{ r.repo }}</a></h2>
+      <span class="muted">{% if not r.has_api_data %}git history only · PR &amp; CI metrics need API access{% else %}{{ r.language or "" }}{% endif %}{% if r.stars is not none %} · ★ {{ r.stars }}{% endif %}</span>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><b>{{ r.commits }}</b><span>commits</span></div>
+      <div class="kpi"><b>{{ r.contributors }}</b><span>human contributors</span></div>
+      <div class="kpi"><b>{{ r.merged_prs if r.has_api_data else "—" }}</b><span>merged PRs</span></div>
+      <div class="kpi"><b>{{ r.cycle_p50_h | hours }}</b><span>median PR cycle time</span></div>
+      <div class="kpi"><b>{{ r.first_review_p50_h | hours }}</b><span>median time to first review</span></div>
+      <div class="kpi"><b class="{{ 'ok' if (r.review_coverage or 0) >= 0.8 else 'bad' if r.review_coverage is not none else '' }}">{{ r.review_coverage | pct }}</b><span>PRs reviewed by someone else</span></div>
+      <div class="kpi"><b class="{{ 'bad' if r.min_bus_factor == 1 else '' }}">{{ r.min_bus_factor if r.min_bus_factor is not none else "—" }}</b><span>lowest bus factor</span></div>
+    </div>
+    {% for c in r.charts %}<img class="chart" src="{{ c }}" alt="{{ c.split('-')[-1].split('.')[0] }} chart for {{ r.repo }}" loading="lazy">{% endfor %}
+    {% if r.people %}
+    <div class="scroll"><table>
+      <thead><tr><th>Contributor</th><th class="n">Commits</th><th class="n">Lines changed</th><th class="n">PRs</th><th class="n">Reviews given</th></tr></thead>
+      <tbody>{% for c in r.people %}<tr><td>{{ c.display_name }}</td><td class="n">{{ c.commits }}</td><td class="n">{{ "{:,}".format(c.churn | int) }}</td><td class="n">{{ c.prs if r.has_api_data else "—" }}</td><td class="n">{{ c.reviews_given if r.has_api_data else "—" }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% endif %}
+  </section>
+  {% endfor %}
+</main>
+</body>
+</html>
