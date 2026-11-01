@@ -1,0 +1,12 @@
+# Repos to analyse. GITHUB_TOKEN raises the API limit to 5,000 req/h (Actions provides one).
+# The warehouse URL can be overridden with GITPULSE_DATABASE_URL.
+database_url: postgresql+psycopg://postgres:postgres@localhost:5432/gitpulse
+since_days: 365
+repos:
+  - AtishayKashyap/vetledger
+  - AtishayKashyap/sentinel-dq
+  - AtishayKashyap/gitpulse
+  - fastapi/typer
+  - pallets/flask
+# Like git's .mailmap: merge aliases into one identity.
+identities: {}
