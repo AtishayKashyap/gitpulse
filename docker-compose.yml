@@ -1,0 +1,21 @@
+# docker compose up -d --build
+# docker compose run --rm api gitpulse run        # extract + transform + report
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: gitpulse }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      retries: 20
+  api:
+    build: .
+    environment:
+      GITPULSE_DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/gitpulse
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+volumes:
+  pgdata:
